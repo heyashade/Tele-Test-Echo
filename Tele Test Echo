@@ -71,7 +71,7 @@ try:
         break
 
 # Function to send a message to the Telegram chat
-def send_telegram_message(message):
+def send_telegram_message(distance):
     url = f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage'
     params = {'chat_id': CHAT_ID, 'text': message}
     urequests.post(url, json=params)
