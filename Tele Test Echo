@@ -1,0 +1,97 @@
+from machine import Pin
+import time
+import urequests
+import machine
+from time import sleep
+
+
+# Define GPIO pins for trigger and echo
+trigger_pin = machine.Pin(7, machine.Pin.OUT)
+echo_pin = machine.Pin(6, machine.Pin.IN)
+
+# Replace 'YOUR_BOT_TOKEN' with your Telegram bot token
+BOT_TOKEN = 'your-token'
+# Replace 'YOUR_CHAT_ID' with your chat ID (you can get it by messaging the BotFather with the command /get_id)
+CHAT_ID = 'your-ID'
+# Replace 'YOUR_LED_PIN' with the GPIO pin connected to the LED
+LED_PIN = 0
+
+# Set up the LED pin
+led_pin = Pin(LED_PIN, Pin.OUT)
+
+def connect():
+    import network
+ 
+    ssid = "Staff KML" 
+    password = "stafkml@15" 
+ 
+    station = network.WLAN(network.STA_IF)
+ 
+    if station.isconnected() == True:
+        print("Already connected")
+        return
+ 
+    station.active(True)
+    station.connect(ssid, password)
+ 
+    while station.isconnected() == False:
+        pass
+ 
+    print("Connection successful")
+    print(station.ifconfig())
+    
+connect()
+
+def get_distance():
+    # Triggering the ultrasonic sensor
+    trigger_pin.off()
+    time.sleep_us(2)
+    trigger_pin.on()
+    time.sleep_us(10)
+    trigger_pin.off()
+    
+    # Measuring the time for the echo
+    while echo_pin.value() == 0:
+        pulse_time = time.ticks_us()
+    
+    while echo_pin.value() == 1:
+        end_time = time.ticks_us()
+    
+    # Calculating distance in centimeters
+    pulse_duration = end_time - pulse_time
+    distance_cm = (pulse_duration * 0.0343) / 2
+    
+    return distance_cm
+
+try:
+    while True:
+        distance = get_distance()
+        print("Distance:", distance, "cm")
+        time.sleep(1)
+        break
+
+# Function to send a message to the Telegram chat
+def send_telegram_message(message):
+    url = f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage'
+    params = {'chat_id': CHAT_ID, 'text': message}
+    urequests.post(url, json=params)
+
+# Main loop
+if True:
+    try:
+        # Make an HTTP request to get updates from Telegram
+        response = urequests.get(f'https://api.telegram.org/bot{BOT_TOKEN}/getUpdates')
+        updates = response.json().get('result')
+        response.close()
+
+        if updates:
+            # Process the latest update
+            latest_update = updates[-1]
+            message_text = latest_update.get('message', {}).get('text', '').lower()
+
+            # Check for commands to control the LED
+            if 'sensor' in message_text:
+                turn_on_led()
+                
+    except Exception as e:
+        print(f"An error occurred: {e}")
